@@ -3,24 +3,20 @@
     "password": "!hvW7r#KxioVLnG8p3uxHebr",
     "shopping_list": [
                 {
-            "symbol": "PKN.PL",
-            "percentage": 40,
-            "priority": 1
+            "symbol": "AAPL.US_7",
+            "percentage": 40
         },
                 {
-            "symbol": "11BIT.PL",
-            "percentage": 25,
-            "priority": 2
+            "symbol": "TSLA.US_9",
+            "percentage": 25
         },
                 {
-            "symbol": "1AT.PL",
-            "percentage": 20,
-            "priority": 3
+            "symbol": "AMZN.US_9",
+            "percentage": 20
         },
                 {
-            "symbol": "3RG.PL",
-            "percentage": 15,
-            "priority": 4
+            "symbol": "META.US_9",
+            "percentage": 15
         }
     ]
 }
