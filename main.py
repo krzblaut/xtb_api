@@ -1,4 +1,4 @@
-from api import xtb
+
 from buy_stocks import BuyStocks
 from xAPIConnector import APIClient, APIStreamClient
 import time 

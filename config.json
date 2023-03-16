@@ -1,21 +1,22 @@
 {
     "username": "14457664",
     "password": "!hvW7r#KxioVLnG8p3uxHebr",
+    "balance_required": 1000,
     "shopping_list": [
                 {
-            "symbol": "AAPL.US_7",
+            "symbol": "VOW3.DE_9",
             "percentage": 40
         },
                 {
-            "symbol": "TSLA.US_9",
+            "symbol": "ADS.DE_9",
             "percentage": 25
         },
                 {
-            "symbol": "AMZN.US_9",
+            "symbol": "PKN.PL_9",
             "percentage": 20
         },
                 {
-            "symbol": "META.US_9",
+            "symbol": "AAPL.US_9",
             "percentage": 15
         }
     ]
