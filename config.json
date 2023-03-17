@@ -1,6 +1,8 @@
 {
     "username": "14457664",
     "password": "!hvW7r#KxioVLnG8p3uxHebr",
+    "from_mail": "krzblaut@gmail.com",
+    "to_mail": "krzblaut@gmail.com",
     "balance_required": 1000,
     "shopping_list": [
                 {
@@ -12,12 +14,12 @@
             "percentage": 25
         },
                 {
-            "symbol": "PKN.PL_9",
+            "symbol": "PKN.PL",
             "percentage": 20
         },
                 {
             "symbol": "11B.PL",
-            "percentage": 5
+            "percentage": 15
         }
     ]
 }

@@ -3,6 +3,23 @@ from xAPIConnector import APIClient, APIStreamClient
 import time
 import pytz
 from datetime import datetime, timedelta
+import boto3
+
+
+# template for trades report
+html_template = """
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>Trading report</title>
+        </head>
+    <body>
+        <table>
+            {trades_table}
+        </table>
+    </body>
+    </html>"""
+
 
 # Command templates
 def baseCommand(commandName, arguments=None):
@@ -43,13 +60,17 @@ class xtbTrader:
         self.shopping_list = self.config['shopping_list']
         self.balance_required = self.config['balance_required']
         self.acc_balance, self.acc_equity, self.acc_currency = self.get_account_info()
-        
+        self.ses = boto3.client('ses', region_name='eu-north-1')
+        self.sender = self.config['from_mail']
+        self.receiver = self.config['to_mail']
+
     def make_trades(self):
         if self.validate() == True:
             print('walidacja ok')
             self.sclient = APIStreamClient(ssId=self.ssid, tickFun=self.process_ticks)
             self.sclient.subscribePrices(self.get_symbols())
             self.calculate_position_sizes()
+            print(self.acc_balance)
             for x in self.shopping_list:
                 if x['volume'] > 0:
                     status, order_number = self.open_order(
@@ -58,7 +79,7 @@ class xtbTrader:
                         volume= x['volume']
                         )
                     x['order_placed'] = status
-                    time.sleep(2)
+                    time.sleep(0.5)
                     x['order_number'] = order_number
                     if self.check_order(order_number) == 3:
                         x['trade_status'] = 'success'
@@ -68,7 +89,7 @@ class xtbTrader:
                 else:
                     x['order_placed'] = False
                     x['trade_status'] = 'Not enough funds to buy at least one stock.'
-            print(self.shopping_list)
+            self.report_trades()
 
     def open_order(self, symbol, price, volume, transaction_type=0, order=0, cmd=0, comment="", expiration=0, sl=0, tp=0):
         TRADE_TRANS_INFO = {
@@ -113,16 +134,18 @@ class xtbTrader:
         self.check_trading_hours()
         ms_time, day = self.get_time()
         status = True
-        symbol_closed = []
+        symbols_closed = []
         for instrument in self.shopping_list:
             if instrument['trading_hours'][0][0] < ms_time < instrument['trading_hours'][0][-1] or \
                instrument['trading_hours'][-1][0] < ms_time < instrument['trading_hours'][-1][-1]:
                 pass
             else:
-                symbol_closed.append(instrument['symbol'])
+                symbols_closed.append(instrument['symbol'])
                 status = False
         if status == False:
-            print('market closed for symbols: ', symbol_closed)
+            self.send_mail("XTB API error", 
+                           f'Unable to proceed with the transaction, market closed for symbols: {symbols_closed}. \
+                            Please change execution time so that market is opened for all positions in shopping list')
         return status
 
     def get_time(self):
@@ -136,16 +159,14 @@ class xtbTrader:
 
     def validate(self):
         if self.login_response['status'] == False:
-            print('login error, check credentials')
-            return False
-        elif self.acc_balance < self.balance_required:
-            print('account balance smaller then required.')
             return False
         elif self.validate_tickers() == False:
             return False
         elif self.validate_shopping_list_percentage() == False:
             return False
         elif self.check_if_market_opened() == False:
+            return False
+        elif self.acc_balance < self.balance_required:
             return False
         else:
             return True
@@ -154,8 +175,10 @@ class xtbTrader:
         loginResponse = self.client.execute(
             loginCommand(userId=self.id, password=self.password)
             )
-        if loginResponse['status'] == False:
-            print('Login failed. Error code: {0}'.format(loginResponse['errorCode']))
+        if loginResponse['status'] == False: 
+            self.send_mail("XTB API error", 
+                           'Could not login, please check XTB account credentials in config.json file. \n'
+                           'Error code: {0}'.format(loginResponse['errorCode']))
         return loginResponse
         
     def validate_shopping_list_percentage(self):
@@ -164,8 +187,8 @@ class xtbTrader:
         for instrument in self.shopping_list:
             percentage_sum += instrument['percentage'] 
         if percentage_sum > 100:
-            #send notification
-            print('naucz sie dodawać zjebie')
+            self.send_mail("XTB API error", 'Sum of percentages for all positions in shopping'
+                           'list is greater than 100.')
             status = False
         return status
         
@@ -182,8 +205,9 @@ class xtbTrader:
                 x['currency'] = latest_price_response['returnData']['currency']
             time.sleep(0.2)
         if status == False: 
-            #send notification
-            print(f'Tickers {invalid_tickers} are invalid.')
+            self.send_mail("XTB API error", f'Tickers {invalid_tickers} are invalid. \n'
+                           'Remember that tickers of stocks that are also offered as CFD by XTB require _9 suffix '
+                           'e.g. PKN.PL_9, AAPL.US_9, ADS.DE_9')
         return status
     
     def get_account_info(self):
@@ -214,7 +238,60 @@ class xtbTrader:
             if x['symbol'] == msg['data']['symbol']:
                 x['ask'] = msg['data']['ask']
 
+    def send_mail(self, subject, msg):
+        response = self.ses.send_email(
+            Destination={
+                'ToAddresses': [
+                    self.receiver,
+                ],
+            },
+            Message={
+                'Body': {
+                    'Text': {
+                        'Charset': 'UTF-8',
+                        'Data': msg,
+                    },
+                },
+                'Subject': {
+                    'Charset': 'UTF-8',
+                    'Data': subject,
+                },
+            },
+            Source=self.sender,
+        )
+    
+    def report_trades(self):
+        trades_table = [['symbol', 'price', 'volume', 'order status']]
+        for x in self.shopping_list:
+            trades_table.append([x['symbol'], x['ask'], x['volume'], x['trade_status']])
+        table_rows = ''
+        for row in trades_table:
+            table_cells = ''
+            for cell in row:
+                table_cells += f'<td>{cell}</td>'
+            table_rows += f'<tr>{table_cells}</tr>'
+        html_output = html_template.format(menu_table=table_rows)
+        response = self.ses.send_email(
+            Destination={
+                'ToAddresses': [
+                    self.receiver,
+                ],
+            },
+            Message={
+                'Body': {
+                    'Html': {
+                        'Data': html_output,
+                    },
+                },
+                'Subject': {
+                    'Data': "Shopping report",
+                },
+            },
+            Source=self.sender,
+        )
+
+    
+
 
 xtb = xtbTrader()
 xtb.make_trades()
-
