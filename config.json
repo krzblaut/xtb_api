@@ -1,24 +1,24 @@
 {
-    "username": "14457664",
-    "password": "!hvW7r#KxioVLnG8p3uxHebr",
-    "from_mail": "krzblaut@gmail.com",
-    "to_mail": "krzblaut@gmail.com",
+    "username": "XTB_account_ID",
+    "password": "XTB_account_password",
+    "from_mail": "sender@example.com",
+    "to_mail": "receiver@example.com",
     "balance_required": 1000,
     "shopping_list": [
                 {
-            "symbol": "VOW3.DE_9",
+            "symbol": "AAPL.US_9",
             "percentage": 40
         },
                 {
-            "symbol": "ADS.DE_9",
+            "symbol": "AMZN.US_9",
             "percentage": 25
         },
                 {
-            "symbol": "PKN.PL",
+            "symbol": "META.US_9",
             "percentage": 20
         },
                 {
-            "symbol": "11B.PL",
+            "symbol": "WMT.US_9",
             "percentage": 15
         }
     ]

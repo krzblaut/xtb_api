@@ -1,8 +1,8 @@
 import json
 from xAPIConnector import APIClient, APIStreamClient
 import time
-import pytz
-from datetime import datetime, timedelta
+import dateutil.tz
+from datetime import datetime
 import boto3
 
 
@@ -14,7 +14,7 @@ html_template = """
             <title>Trading report</title>
         </head>
     <body>
-        <table>
+        <table cellpadding="15" align="center">
             {trades_table}
         </table>
     </body>
@@ -49,6 +49,7 @@ def check_order_command(order):
 class xtbTrader:
 
     global shopping_list
+    global acc_balance
 
     def __init__(self):
         self.config = json.load(open('config.json'))
@@ -66,11 +67,9 @@ class xtbTrader:
 
     def make_trades(self):
         if self.validate() == True:
-            print('walidacja ok')
             self.sclient = APIStreamClient(ssId=self.ssid, tickFun=self.process_ticks)
             self.sclient.subscribePrices(self.get_symbols())
             self.calculate_position_sizes()
-            print(self.acc_balance)
             for x in self.shopping_list:
                 if x['volume'] > 0:
                     status, order_number = self.open_order(
@@ -90,6 +89,8 @@ class xtbTrader:
                     x['order_placed'] = False
                     x['trade_status'] = 'Not enough funds to buy at least one stock.'
             self.report_trades()
+            self.sclient.disconnect()
+            self.client.disconnect()
 
     def open_order(self, symbol, price, volume, transaction_type=0, order=0, cmd=0, comment="", expiration=0, sl=0, tp=0):
         TRADE_TRANS_INFO = {
@@ -106,7 +107,8 @@ class xtbTrader:
             "volume": volume
         }
 
-        open_order_response = self.client.execute(open_order_command(tradeTransInfo=TRADE_TRANS_INFO))
+        open_order_response = self.client.execute(
+            open_order_command(tradeTransInfo=TRADE_TRANS_INFO))
         if open_order_response['status'] == True:
             return True, open_order_response['returnData']['order']
         else:
@@ -149,7 +151,7 @@ class xtbTrader:
         return status
 
     def get_time(self):
-        cet = pytz.timezone('Europe/Berlin')
+        cet = dateutil.tz.gettz('Europe/Berlin')
         now = datetime.now(cet)
         midnight = datetime(now.year, now.month, now.day, 0, 0, 0, tzinfo=cet)
         delta = now - midnight
@@ -160,9 +162,9 @@ class xtbTrader:
     def validate(self):
         if self.login_response['status'] == False:
             return False
-        elif self.validate_tickers() == False:
+        elif self.check_tickers() == False:
             return False
-        elif self.validate_shopping_list_percentage() == False:
+        elif self.check_shopping_list_percentage() == False:
             return False
         elif self.check_if_market_opened() == False:
             return False
@@ -181,7 +183,7 @@ class xtbTrader:
                            'Error code: {0}'.format(loginResponse['errorCode']))
         return loginResponse
         
-    def validate_shopping_list_percentage(self):
+    def check_shopping_list_percentage(self):
         percentage_sum = 0
         status = True
         for instrument in self.shopping_list:
@@ -192,7 +194,7 @@ class xtbTrader:
             status = False
         return status
         
-    def validate_tickers(self):
+    def check_tickers(self):
         invalid_tickers = []
         status = True
         for x in self.shopping_list:
@@ -212,7 +214,6 @@ class xtbTrader:
     
     def get_account_info(self):
         balance_response = self.client.execute(get_balance_command())
-        print(balance_response)
         account_balance = balance_response['returnData']['balance'] 
         account_equity = balance_response['returnData']['equity'] 
         account_currency = balance_response['returnData']['currency'] 
@@ -270,7 +271,7 @@ class xtbTrader:
             for cell in row:
                 table_cells += f'<td>{cell}</td>'
             table_rows += f'<tr>{table_cells}</tr>'
-        html_output = html_template.format(menu_table=table_rows)
+        html_output = html_template.format(trades_table=table_rows)
         response = self.ses.send_email(
             Destination={
                 'ToAddresses': [
@@ -290,8 +291,3 @@ class xtbTrader:
             Source=self.sender,
         )
 
-    
-
-
-xtb = xtbTrader()
-xtb.make_trades()
