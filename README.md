@@ -26,11 +26,11 @@ To create lambda function you have to:
 2. Go to AWS Lambda dashboard and click "Create new function"
 3. Choose "Author from scratch", fill in function name, select Python 3.9 as runtime and x86_64 as architecture. Click "Create function".
 4. You should see 'Code source' window. Click "Upload from", select ".zip file" and upload file you downloaded earlier.
-5. Uploaded files should be visible in directory tree on the left side of the code.
+5. Uploaded files should be visible in directory tree on the left side.
 
 ## 3. Modifying permissions policy
 
-To let your lambda function send emails you have to modify its set of permissions. 
+To let your lambda function send emails you need to modify its set of permissions. 
 
 To do so you have to:
 
@@ -38,7 +38,7 @@ To do so you have to:
 2. Copy Amazon Resource Name (ARN).
 3. Go to IAM dashboard (type "IAM" in AWS serachbox).
 4. Select "Roles" from side navbar.
-5. Select role related to our lambda function name.
+5. Select role related to your lambda function name.
 6. Edit permission policy JSON by adding to "Statement" list following code:
 
 ```
