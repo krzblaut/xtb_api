@@ -54,7 +54,7 @@ To do so you have to:
 
 ## 4. Changing timeout value
 
-As default all AWS lambda functions' timeout is set to 3 s by default. Execution of this script may take around 10 s. In order to let our script execute properly we have to change timeout setting. To do so you have to:
+All AWS lambda functions' timeout is set to 3 s by default. Execution of this script may take around 10 s. In order to let our script execute properly we have to change timeout setting. To do so you have to:
 
 1. Go to 'Configuration' tab in your lambda function dashboard.
 2. Click 'Edit' in 'General configuration' window.
@@ -79,7 +79,7 @@ Before you run lambda function you have to fill in config.json file. It contains
 
 ***Sum of percentages cannot be greater than 100. Tickers of stocks which are provided by XTB as both CFDs and physical shares must contain _9 suffix. E.g. AAPL.US_9.***
 
-After you filled config file click deploy in the 'Source code' window. You have to deploy your code everytime you make changes in config file. 
+After you filled config file click 'deploy' in the 'Source code' window. You have to deploy your code everytime you make changes in config file. 
 
 ## 6. Test your Lambda function
 
