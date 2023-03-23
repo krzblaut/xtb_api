@@ -166,7 +166,7 @@ class JsonSocket(object):
 class APIClient(JsonSocket):
 
     """
-    Client for non-streaming commands. Enables receiving one.
+    Client for non-streaming commands. Enables receiving single response with data. 
     """
     def __init__(self, address=DEFAULT_XAPI_ADDRESS, port=DEFAULT_XAPI_PORT, encrypt=True):
         super(APIClient, self).__init__(address, port, encrypt)
