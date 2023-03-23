@@ -1,6 +1,6 @@
 # Dollar cost averaging bot with XTB API
 
-This code combined with AWS lambda function allows you to automate the regular purchase of selected stocks. 
+This code combined with AWS lambda function allows you to automate the regular purchase of selected stocks. It uses xAPIConnector script provided by XTB for managing API subscriptions and messages. 
 
 Requirements:
 - XTB account (preferably demo account for testing),
@@ -52,8 +52,16 @@ To do so you have to:
 }
 ```
 
+## 4. Changing timeout value
 
-## Config.json
+As default all AWS lambda functions' timeout is set to 3 s by default. Execution of this script may take around 10 s. In order to let our script execute properly we have to change timeout setting. To do so you have to:
+
+1. Go to 'Configuration' tab in your lambda function dashboard.
+2. Click 'Edit' in 'General configuration' window.
+3. Set Timeout to 15 s. 
+4. Click 'Save'.
+
+## 5. Config.json
 
 Before you run lambda function you have to fill in config.json file. It contains all necessary data for script to run. 
 
@@ -73,13 +81,13 @@ Before you run lambda function you have to fill in config.json file. It contains
 
 After you filled config file click deploy in the 'Source code' window. You have to deploy your code everytime you make changes in config file. 
 
-## Test your Lambda function
+## 6. Test your Lambda function
 
  Once you have done all the steps above you can test the lambda function. To do so you have to click blue Test button. When you click it for the first time you will have to configure test event. All you have to do is fill in Event name e.g. 'test'. If test was successful you should see "Execution successful" in Execution result tab and notification in your e-mail inbox. 
  
  ***It is highly recommended to use demo account at this phase. Balance refresh takes up to 10 minutes. You may encounter irregularities if you run script with shorter intervals.***
  
-## Setting trigger
+## 7. Setting trigger
 
 After running test successfully you can set trigger which will run your script regularly. 
 
