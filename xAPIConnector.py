@@ -33,6 +33,11 @@ if DEBUG:
 else:
     logger.setLevel(logging.CRITICAL)
 
+def baseCommand(commandName, arguments=None):
+    if arguments==None:
+        arguments = dict()
+    return dict([('command', commandName), ('arguments', arguments)])
+
 
 class TransactionSide(object):
     BUY = 0
@@ -49,6 +54,9 @@ class TransactionType(object):
     ORDER_DELETE = 4
 
 class JsonSocket(object):
+    """
+    does some magic to enable API connection
+    """
     def __init__(self, address, port, encrypt = False):
         self._ssl = encrypt 
         if self._ssl != True:
@@ -156,6 +164,10 @@ class JsonSocket(object):
     
     
 class APIClient(JsonSocket):
+
+    """
+    Client for non-streaming commands. Enables receiving one.
+    """
     def __init__(self, address=DEFAULT_XAPI_ADDRESS, port=DEFAULT_XAPI_PORT, encrypt=True):
         super(APIClient, self).__init__(address, port, encrypt)
         if(not self.connect()):
@@ -172,6 +184,11 @@ class APIClient(JsonSocket):
         return self.execute(baseCommand(commandName, arguments))
 
 class APIStreamClient(JsonSocket):
+    """
+    Client for streaming commands. Enables receiving real time data like price ticks. Real time data is processed by
+    related custom functions (tickFun - processing ticks, balanceFun - processing balance info etc.). To receive streaming 
+    data particular subscriptions must be placed (e.g. subscribePrices(symbol))
+    """
     def __init__(self, address=DEFAULT_XAPI_ADDRESS, port=DEFUALT_XAPI_STREAMING_PORT, encrypt=True, ssId=None, 
                  tickFun=None, tradeFun=None, balanceFun=None, tradeStatusFun=None, profitFun=None, newsFun=None):
         super(APIStreamClient, self).__init__(address, port, encrypt)
