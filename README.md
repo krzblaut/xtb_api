@@ -54,7 +54,7 @@ To do so you have to:
 
 ## 4. Changing timeout value
 
-All AWS lambda functions' timeout is set to 3 s by default. Execution of this script may take around 10 s. In order to let our script execute properly we have to change timeout setting. To do so you have to:
+All AWS lambda functions' timeout is set to 3 s by default. Execution of this script may take around 10 s. In order to let your script execute properly you have to change timeout setting. To do so you need to:
 
 1. Go to 'Configuration' tab in your lambda function dashboard.
 2. Click 'Edit' in 'General configuration' window.
