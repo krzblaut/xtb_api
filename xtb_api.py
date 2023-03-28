@@ -133,9 +133,7 @@ class xtbTrader:
                     status = False
             time.sleep(0.2)
         if status == False: 
-            self.send_mail("XTB API error", f'Tickers {invalid_tickers} are invalid. \n'
-                           'Remember that tickers of stocks that are also offered as CFD by XTB require _9 suffix '
-                           'e.g. PKN.PL_9, AAPL.US_9, ADS.DE_9')
+            self.send_mail("XTB API error", f'Tickers {invalid_tickers} are invalid. \n')
         return status
 
     def check_if_market_opened(self):
