@@ -77,7 +77,7 @@ Before you run lambda function you have to fill in config.json file. It contains
 
 `shopping_list` - list of stocks' tickers you want to buy with percentage of your balance you want to spend on each. 
 
-***Sum of percentages cannot be greater than 100. Tickers of stocks which are provided by XTB as both CFDs and physical shares must contain _9 suffix. E.g. AAPL.US_9.***
+***Sum of percentages cannot be greater than 100. Percentage for each stock must be greater or equal to 0.
 
 After you filled config file click 'deploy' in the 'Source code' window. You have to deploy your code everytime you make changes in config file. 
 
