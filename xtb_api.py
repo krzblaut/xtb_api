@@ -51,19 +51,21 @@ class xtbTrader:
     global shopping_list
 
     def __init__(self):
-        self.config = json.load(open('config.json'))
+        with open('config.json', 'r') as f:
+            self.config = json.load(f)
+            self.id = self.config['username'] 
+            self.password = self.config['password']
+            self.shopping_list = self.config['shopping_list']
+            self.balance_required = self.config['balance_required']
+            self.sender = self.config['from_mail']
+            self.receiver = self.config['to_mail']
+            
         self.client = APIClient()
-        self.id = self.config['username'] 
-        self.password = self.config['password']
         self.login_response = self.login()
         self.ssid = self.login_response['streamSessionId']
         # creating shopping_list dict from config.json file
-        self.shopping_list = self.config['shopping_list']
-        self.balance_required = self.config['balance_required']
         self.acc_balance, self.acc_equity, self.acc_currency = self.get_account_info()
         self.ses = boto3.client('ses', region_name='eu-north-1')
-        self.sender = self.config['from_mail']
-        self.receiver = self.config['to_mail']
 
 
     def login(self):
@@ -97,6 +99,9 @@ class xtbTrader:
         percentage_sum = 0
         status = True
         for instrument in self.shopping_list:
+            if instrument['percentage'] < 0:
+                self.send_mail("XTB API error", 'Percentage for each symbol must not be smaller than 0')
+                status = False
             percentage_sum += instrument['percentage'] 
         if percentage_sum > 100:
             self.send_mail("XTB API error", 'Sum of percentages for all positions in shopping'
@@ -113,12 +118,19 @@ class xtbTrader:
         status = True
         for x in self.shopping_list:
             latest_price_response = self.client.execute(latest_price_command(x['symbol']))
-            if latest_price_response['status'] == False:
-                invalid_tickers.append(x['symbol'])
-                status = False
-            else:
+            if latest_price_response['status'] == True:
                 x['ask'] = latest_price_response['returnData']['ask']
                 x['currency'] = latest_price_response['returnData']['currency']
+            elif latest_price_response['status'] == False:
+                time.sleep(0.2)
+                latest_price_response = self.client.execute(latest_price_command(x['symbol'] + '_9'))
+                if latest_price_response['status'] == True:
+                    x['symbol'] += '_9'
+                    x['ask'] = latest_price_response['returnData']['ask']
+                    x['currency'] = latest_price_response['returnData']['currency']
+                else:
+                    invalid_tickers.append(x['symbol'])
+                    status = False
             time.sleep(0.2)
         if status == False: 
             self.send_mail("XTB API error", f'Tickers {invalid_tickers} are invalid. \n'
@@ -180,7 +192,7 @@ class xtbTrader:
     def process_ticks(self, msg):
         """
         Processes messages containing ticks from XTB API. Updates 'ask' value for corresponding symbol in shopping_list dict.  
-        Shopping_list is a global variable thus ask price will always be latest.
+        Shopping_list is a global variable thus ask price will always be the latest.
         """
         for x in self.shopping_list:
             if x['symbol'] == msg['data']['symbol']:
