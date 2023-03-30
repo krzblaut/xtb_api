@@ -63,7 +63,6 @@ class xtbTrader:
         self.client = APIClient()
         self.login_response = self.login()
         self.ssid = self.login_response['streamSessionId']
-        # creating shopping_list dict from config.json file
         self.acc_balance, self.acc_equity, self.acc_currency = self.get_account_info()
         self.ses = boto3.client('ses', region_name='eu-north-1')
 
@@ -136,6 +135,38 @@ class xtbTrader:
             self.send_mail("XTB API error", f'Tickers {invalid_tickers} are invalid. \n')
         return status
 
+    def check_trading_hours(self):
+        """
+        Adds trading hours for each symbol to self.shopping_list dict. Trading hours are described as milliseconds 
+        since midnight. 
+        """
+        symbols = self.get_symbols()
+        trading_hours_response = self.client.execute(trading_hours_command(symbols))
+        # print(trading_hours_response)
+        time, day = self.get_time()
+        for instrument in trading_hours_response['returnData']:
+            open_hours = []
+            for session in instrument['trading']:
+                if session['day'] == day:
+                    open_hours.append((session['fromT'], session['toT']))
+            for ticker in self.shopping_list:
+                if ticker['symbol'] == instrument['symbol']:
+                    if open_hours != []:
+                        ticker['trading_hours'] = open_hours 
+                    else:
+                        ticker['trading_hours'] = [(0,0)]
+    def get_time(self):
+        """
+        Returns current time as milliseconds since midnight and current day of the week as a number from 0 to 6
+        """
+        cet = dateutil.tz.gettz('Europe/Berlin')
+        now = datetime.now(cet)
+        midnight = datetime(now.year, now.month, now.day, 0, 0, 0, tzinfo=cet)
+        delta = now - midnight
+        milliseconds_since_midnight = int(delta.total_seconds() * 1000)
+        week_day = now.weekday() + 1
+        return milliseconds_since_midnight, week_day
+    
     def check_if_market_opened(self):
         """
         Checks if market fo each symbol in shopping_list is opened. Returns True if market for all tickers is opened.
@@ -157,35 +188,6 @@ class xtbTrader:
                            f'Unable to proceed with the transaction, market closed for symbols: {symbols_closed}. \
                             Please change execution time so that market is opened for all positions in shopping list')
         return status
-                
-    def get_time(self):
-        """
-        Returns current time as milliseconds since midnight and current day of the week as a number from 0 to 6
-        """
-        cet = dateutil.tz.gettz('Europe/Berlin')
-        now = datetime.now(cet)
-        midnight = datetime(now.year, now.month, now.day, 0, 0, 0, tzinfo=cet)
-        delta = now - midnight
-        milliseconds_since_midnight = int(delta.total_seconds() * 1000)
-        week_day = now.weekday() + 1
-        return milliseconds_since_midnight, week_day
-
-    def check_trading_hours(self):
-        """
-        Adds trading hours for each symbol to self.shopping_list dict. Trading hours are described as milliseconds 
-        since midnight. 
-        """
-        symbols = self.get_symbols()
-        trading_hours_response = self.client.execute(trading_hours_command(symbols))
-        time, day = self.get_time()
-        for i in trading_hours_response['returnData']:
-            open_hours = []
-            for x in i['trading']:
-                if x['day'] == day:
-                    open_hours.append((x['fromT'], x['toT']))
-            for x in self.shopping_list:
-                if x['symbol'] == i['symbol']:
-                    x['trading_hours'] = open_hours
 
     def process_ticks(self, msg):
         """
@@ -213,7 +215,7 @@ class xtbTrader:
                 x['volume'] = int(((x['percentage']/100)*self.acc_balance)/x['ask'])
             else:
                 latest_price_response = self.client.execute(
-                    latest_price_command(x['currency']+'PLN'))
+                    latest_price_command(x['currency'] + self.acc_currency))
                 time.sleep(0.2)
                 exchange_rate = latest_price_response['returnData']['ask']
                 x['volume'] = int(((x['percentage']/100)*self.acc_balance)/(x['ask']*exchange_rate))
@@ -272,6 +274,8 @@ class xtbTrader:
         Makes transactions based on symbols, prices and volumes in shopping_list dict provided that volume calculated 
         for symbol is greater than 0. Checks if trades were placed successfully and sends trade report e-mail.
         """
+        response = self.login()
+        
         if self.validate() == True:
             self.sclient = APIStreamClient(ssId=self.ssid, tickFun=self.process_ticks)
             self.sclient.subscribePrices(self.get_symbols())
